@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GetBetterAim — Valorant Aim Mastery</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            val: {
+              red: '#FF4655',
+              dark: '#0F1923',
+              darker: '#070D14',
+              card: '#111B26',
+              border: '#1E2D3D',
+              text: '#ACB7BF',
+              accent: '#00E5FF',
+            }
+          },
+          fontFamily: {
+            display: ['Bebas Neue', 'sans-serif'],
+            condensed: ['Barlow Condensed', 'sans-serif'],
+            body: ['Barlow', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red: #FF4655;
+      --dark: #0F1923;
+      --darker: #070D14;
+      --card: #111B26;
+      --border: #1E2D3D;
+      --text: #ACB7BF;
+      --accent: #00E5FF;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--darker);
+      color: #fff;
+      font-family: 'Barlow', sans-serif;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+
+    /* Crosshair cursor overlay */
+    #crosshair {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.05s;
+    }
+    #crosshair::before, #crosshair::after {
+      content: '';
+      position: absolute;
+      background: var(--red);
+    }
+    #crosshair::before {
+      width: 2px; height: 100%;
+      left: 50%; top: 0;
+      transform: translateX(-50%);
+    }
+    #crosshair::after {
+      width: 100%; height: 2px;
+      top: 50%; left: 0;
+      transform: translateY(-50%);
+    }
+    .ch-dot {
+      position: absolute;
+      width: 4px; height: 4px;
+      background: var(--red);
+      border-radius: 50%;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; width: 100%; z-index: 100;
+      backdrop-filter: blur(16px);
+      background: rgba(7, 13, 20, 0.85);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* HERO */
+    .hero-bg {
+      background: radial-gradient(ellipse 80% 60% at 60% 40%, rgba(255,70,85,0.12) 0%, transparent 70%),
+                  radial-gradient(ellipse 50% 40% at 30% 80%, rgba(0,229,255,0.06) 0%, transparent 60%),
+                  var(--darker);
+    }
+
+    .hero-grid {
+      background-image:
+        linear-gradient(rgba(255,70,85,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,70,85,0.07) 1px, transparent 1px);
+      background-size: 60px 60px;
+      background-position: center center;
+    }
+
+    .glitch {
+      position: relative;
+    }
+    .glitch::before, .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+    }
+    .glitch::before {
+      color: var(--accent);
+      animation: glitch1 3s infinite;
+      clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+    }
+    .glitch::after {
+      color: var(--red);
+      animation: glitch2 3s infinite;
+      clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
+    }
+    @keyframes glitch1 {
+      0%, 90%, 100% { transform: translate(0); opacity: 0; }
+      92% { transform: translate(-3px, 1px); opacity: 0.8; }
+      94% { transform: translate(3px, -1px); opacity: 0.8; }
+      96% { transform: translate(0); opacity: 0; }
+    }
+    @keyframes glitch2 {
+      0%, 85%, 100% { transform: translate(0); opacity: 0; }
+      87% { transform: translate(3px, 2px); opacity: 0.8; }
+      89% { transform: translate(-3px, -2px); opacity: 0.8; }
+      91% { transform: translate(0); opacity: 0; }
+    }
+
+    /* STAT COUNTER */
+    .stat-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .stat-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--red), #ff7b86);
+      border-radius: 2px;
+      transform-origin: left;
+      transform: scaleX(0);
+      transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* CARDS */
+    .tip-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .tip-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: var(--red);
+      transform: scaleY(0);
+      transform-origin: top;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .tip-card:hover {
+      border-color: rgba(255,70,85,0.4);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+    .tip-card:hover::before { transform: scaleY(1); }
+
+    /* SENSITIVITY CALCULATOR */
+    .calc-container {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--red);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(255,70,85,0.6);
+    }
+    input[type=number] {
+      background: var(--darker);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: #fff;
+      padding: 8px 12px;
+      width: 100%;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type=number]:focus { border-color: var(--red); }
+
+    /* ROUTINE TABLE */
+    .routine-row {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+    .routine-row:hover { background: rgba(255,70,85,0.05); }
+
+    /* AGENTS */
+    .agent-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 2px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .duelist { background: rgba(255,70,85,0.2); color: var(--red); border: 1px solid rgba(255,70,85,0.3); }
+    .initiator { background: rgba(0,229,255,0.15); color: var(--accent); border: 1px solid rgba(0,229,255,0.3); }
+    .controller { background: rgba(134,98,255,0.2); color: #9b6fff; border: 1px solid rgba(134,98,255,0.3); }
+    .sentinel { background: rgba(255,184,0,0.15); color: #ffb800; border: 1px solid rgba(255,184,0,0.3); }
+
+    /* SCROLL REVEAL */
+    .reveal { opacity: 0; transform: translateY(30px); }
+
+    /* PROGRESS RING */
+    .progress-ring { transform: rotate(-90deg); }
+    .progress-ring-circle {
+      transition: stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+      stroke-linecap: round;
+    }
+
+    /* RANK GRADIENT */
+    .rank-iron { color: #9E9E9E; }
+    .rank-bronze { color: #CD7F32; }
+    .rank-silver { color: #C0C0C0; }
+    .rank-gold { color: #FFD700; }
+    .rank-plat { color: #00BFFF; }
+    .rank-diamond { color: #B9F2FF; }
+    .rank-ascendant { color: #00FF7F; }
+    .rank-immortal { color: var(--red); }
+    .rank-radiant { color: #FFEA00; }
+
+    /* SECTION DIVIDER */
+    .section-label {
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 0.2em;
+      color: var(--red);
+      font-size: 0.85rem;
+    }
+
+    /* TOOLTIP */
+    .tooltip {
+      position: relative;
+    }
+    .tooltip-text {
+      visibility: hidden;
+      opacity: 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.75rem;
+      padding: 6px 10px;
+      border-radius: 3px;
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      transition: opacity 0.2s;
+      pointer-events: none;
+      z-index: 50;
+    }
+    .tooltip:hover .tooltip-text { visibility: visible; opacity: 1; }
+
+    /* VALORANT RANK TRACKER */
+    .rank-pill {
+      padding: 4px 14px;
+      border-radius: 2px;
+      font-family: 'Barlow Condensed';
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--darker); }
+    ::-webkit-scrollbar-thumb { background: var(--red); border-radius: 2px; }
+
+    /* Pulse dot */
+    @keyframes pulse-red {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,70,85,0.5); }
+      50% { box-shadow: 0 0 0 8px rgba(255,70,85,0); }
+    }
+    .pulse-dot {
+      animation: pulse-red 2s infinite;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      background: rgba(255,70,85,0.1);
+      border: 1px solid rgba(255,70,85,0.2);
+      border-radius: 2px;
+      font-size: 0.7rem;
+      font-family: 'Barlow Condensed';
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--red);
+    }
+
+    @keyframes scanline {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100vh); }
+    }
+    .scanline {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(transparent, rgba(255,70,85,0.03), transparent);
+      animation: scanline 8s linear infinite;
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    .hero-number {
+      font-family: 'Bebas Neue';
+      font-size: clamp(5rem, 15vw, 12rem);
+      line-height: 0.85;
+      letter-spacing: -0.02em;
+    }
+
+    .map-badge {
+      font-family: 'Barlow Condensed';
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      background: rgba(255,70,85,0.1);
+      border: 1px solid rgba(255,70,85,0.25);
+      color: var(--red);
+      padding: 3px 10px;
+      border-radius: 2px;
+    }
+
+    .glow-red { text-shadow: 0 0 30px rgba(255,70,85,0.5); }
+    .glow-accent { text-shadow: 0 0 20px rgba(0,229,255,0.4); }
+
+    section { position: relative; }
+  </style>
+</head>
+<body>
+
+<!-- Custom Crosshair -->
+<div id="crosshair"><div class="ch-dot"></div></div>
+<div class="scanline"></div>
+
+<!-- ===================== NAV ===================== -->
+<nav class="px-6 py-4">
+  <div class="max-w-7xl mx-auto flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <circle cx="14" cy="14" r="13" stroke="#FF4655" stroke-width="1.5"/>
+        <line x1="14" y1="2" x2="14" y2="26" stroke="#FF4655" stroke-width="1.5"/>
+        <line x1="2" y1="14" x2="26" y2="14" stroke="#FF4655" stroke-width="1.5"/>
+        <circle cx="14" cy="14" r="2.5" fill="#FF4655"/>
+      </svg>
+      <span class="font-display text-xl tracking-widest text-white">GETBETTERAIM</span>
+    </div>
+    <div class="hidden md:flex items-center gap-8">
+      <a href="#fundamentals" class="font-condensed text-sm tracking-widest uppercase text-val-text hover:text-white transition-colors">Fundamentals</a>
+      <a href="#settings" class="font-condensed text-sm tracking-widest uppercase text-val-text hover:text-white transition-colors">Settings</a>
+      <a href="#training" class="font-condensed text-sm tracking-widest uppercase text-val-text hover:text-white transition-colors">Training</a>
+      <a href="#mindset" class="font-condensed text-sm tracking-widest uppercase text-val-text hover:text-white transition-colors">Mindset</a>
+      <a href="#calculator" class="font-condensed text-sm tracking-widest uppercase text-val-text hover:text-white transition-colors">Calculator</a>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="w-2 h-2 rounded-full bg-val-red pulse-dot"></div>
+      <span class="font-condensed text-xs text-val-text tracking-widest uppercase">Live Guide</span>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<section class="hero-bg min-h-screen flex items-center pt-20 relative overflow-hidden">
+  <div class="hero-grid absolute inset-0 opacity-40"></div>
+
+  <!-- Corner brackets -->
+  <div class="absolute top-24 left-8 w-12 h-12 border-l border-t border-val-red opacity-40"></div>
+  <div class="absolute top-24 right-8 w-12 h-12 border-r border-t border-val-red opacity-40"></div>
+  <div class="absolute bottom-8 left-8 w-12 h-12 border-l border-b border-val-red opacity-40"></div>
+  <div class="absolute bottom-8 right-8 w-12 h-12 border-r border-b border-val-red opacity-40"></div>
+
+  <div class="max-w-7xl mx-auto px-6 py-20 w-full">
+    <div class="grid lg:grid-cols-2 gap-16 items-center">
+      <div>
+        <div class="flex items-center gap-3 mb-6">
+          <span class="tag">Valorant</span>
+          <span class="tag">2025 Edition</span>
+          <span class="font-condensed text-xs text-val-text tracking-widest uppercase">Episode 9</span>
+        </div>
+        <h1 class="hero-number text-white glitch glow-red mb-4" data-text="YOUR AIM IS HOLDING YOU BACK.">YOUR AIM IS HOLDING YOU BACK.</h1>
+        <p class="font-body text-val-text text-lg leading-relaxed mb-10 max-w-lg">
+          Stop blaming your teammates. The difference between Iron and Radiant isn't luck — it's muscle memory, mechanics, and a repeatable system. Build it here.
+        </p>
+        <div class="flex flex-wrap gap-4">
+          <a href="#fundamentals" class="inline-flex items-center gap-2 bg-val-red text-white font-condensed font-semibold tracking-widest uppercase text-sm px-8 py-3 hover:bg-red-500 transition-colors">
+            Start Training
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </a>
+          <a href="#calculator" class="inline-flex items-center gap-2 border border-val-border text-val-text font-condensed font-semibold tracking-widest uppercase text-sm px-8 py-3 hover:border-val-red hover:text-white transition-colors">
+            Sens Calculator
+          </a>
+        </div>
+        <!-- Stats row -->
+        <div class="mt-14 grid grid-cols-3 gap-6 border-t border-val-border pt-10">
+          <div>
+            <div class="font-display text-3xl text-val-red glow-red">800</div>
+            <div class="font-condensed text-xs text-val-text tracking-widest uppercase mt-1">Avg Pro DPI</div>
+          </div>
+          <div>
+            <div class="font-display text-3xl text-white">0.3–0.4</div>
+            <div class="font-condensed text-xs text-val-text tracking-widest uppercase mt-1">eDPI Sweet Spot</div>
+          </div>
+          <div>
+            <div class="font-display text-3xl text-val-accent glow-accent">30min</div>
+            <div class="font-condensed text-xs text-val-text tracking-widest uppercase mt-1">Daily Aim Lab Min.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Crosshair visualizer -->
+      <div class="flex flex-col items-center gap-8">
+        <!-- Big Crosshair Display -->
+        <div class="relative w-80 h-80 flex items-center justify-center">
+          <div class="absolute inset-0 border border-val-border rounded-sm opacity-50"></div>
+          <div class="absolute inset-4 border border-val-border rounded-sm opacity-25"></div>
+
+          <!-- Animated radar sweep -->
+          <svg class="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 320 320">
+            <circle cx="160" cy="160" r="120" stroke="#FF4655" stroke-width="0.5" fill="none"/>
+            <circle cx="160" cy="160" r="80" stroke="#FF4655" stroke-width="0.5" fill="none"/>
+            <circle cx="160" cy="160" r="40" stroke="#FF4655" stroke-width="0.5" fill="none"/>
+          </svg>
+
+          <!-- Main crosshair -->
+          <svg id="crosshairPreview" viewBox="0 0 160 160" width="160" height="160" class="relative z-10">
+            <!-- Outer lines -->
+            <line x1="80" y1="10" x2="80" y2="55" stroke="#FF4655" stroke-width="2" stroke-linecap="round"/>
+            <line x1="80" y1="105" x2="80" y2="150" stroke="#FF4655" stroke-width="2" stroke-linecap="round"/>
+            <line x1="10" y1="80" x2="55" y2="80" stroke="#FF4655" stroke-width="2" stroke-linecap="round"/>
+            <line x1="105" y1="80" x2="150" y2="80" stroke="#FF4655" stroke-width="2" stroke-linecap="round"/>
+            <!-- Center dot -->
+            <circle cx="80" cy="80" r="2" fill="#FF4655"/>
+          </svg>
+          <div class="absolute bottom-4 left-0 right-0 text-center">
+            <span class="font-condensed text-xs text-val-text tracking-widest uppercase">Customize below →</span>
+          </div>
+        </div>
+
+        <!-- Quick crosshair customizer -->
+        <div class="w-full bg-val-card border border-val-border rounded-sm p-5">
+          <div class="font-condensed text-sm font-semibold tracking-widest uppercase text-val-text mb-4">Crosshair Preview</div>
+          <div class="space-y-4">
+            <div>
+              <label class="font-condensed text-xs text-val-text tracking-wider uppercase mb-2 block">Color</label>
+              <div class="flex gap-2 flex-wrap">
+                <button onclick="setCrosshairColor('#FF4655')" class="w-7 h-7 rounded-sm border-2 border-transparent hover:border-white transition-all" style="background:#FF4655"></button>
+                <button onclick="setCrosshairColor('#00E5FF')" class="w-7 h-7 rounded-sm border-2 border-transparent hover:border-white transition-all" style="background:#00E5FF"></button>
+                <button onclick="setCrosshairColor('#00FF7F')" class="w-7 h-7 rounded-sm border-2 border-transparent hover:border-white transition-all" style="background:#00FF7F"></button>
+                <button onclick="setCrosshairColor('#FFD700')" class="w-7 h-7 rounded-sm border-2 border-transparent hover:border-white transition-all" style="background:#FFD700"></button>
+                <button onclick="setCrosshairColor('#FFFFFF')" class="w-7 h-7 rounded-sm border-2 border-transparent hover:border-white transition-all" style="background:#FFFFFF"></button>
+                <button onclick="setCrosshairColor('#FF69B4')" class="w-7 h-7 rounded-sm border-2 border-transparent hover:border-white transition-all" style="background:#FF69B4"></button>
+              </div>
+            </div>
+            <div>
+              <label class="font-condensed text-xs text-val-text tracking-wider uppercase mb-2 block">Gap — <span id="gapVal">10</span>px</label>
+              <input type="range" id="gapSlider" min="0" max="30" value="10" oninput="updateCrosshair()">
+            </div>
+            <div>
+              <label class="font-condensed text-xs text-val-text tracking-wider uppercase mb-2 block">Length — <span id="lenVal">30</span>px</label>
+              <input type="range" id="lenSlider" min="5" max="50" value="30" oninput="updateCrosshair()">
+            </div>
+            <div>
+              <label class="font-condensed text-xs text-val-text tracking-wider uppercase mb-2 block">Thickness — <span id="thickVal">2</span>px</label>
+              <input type="range" id="thickSlider" min="1" max="6" value="2" oninput="updateCrosshair()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== RANK ROADMAP ===================== -->
+<section class="py-16 border-y border-val-border bg-val-dark">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="font-condensed text-xs text-val-text tracking-widest uppercase mb-6">Rank Progression — What each bracket actually requires</div>
+    <div class="flex flex-wrap gap-2 items-center">
+      <div class="rank-pill bg-gray-700/30 border border-gray-600/40 rank-iron">Iron</div>
+      <div class="text-val-border">—</div>
+      <div class="rank-pill bg-amber-900/20 border border-amber-800/40 rank-bronze">Bronze</div>
+      <div class="text-val-border">—</div>
+      <div class="rank-pill bg-gray-400/10 border border-gray-400/30 rank-silver">Silver</div>
+      <div class="text-val-border">—</div>
+      <div class="rank-pill bg-yellow-400/10 border border-yellow-400/30 rank-gold">Gold</div>
+      <div class="text-val-border">—</div>
+      <div class="rank-pill bg-blue-400/10 border border-blue-400/30 rank-plat">Platinum</div>
+      <div class="text-val-border">—</div>
+      <div class="rank-pill bg-cyan-300/10 border border-cyan-300/30 rank-diamond">Diamond</div>
+      <div class="text-val-border">—</div>
+      <div class="rank-pill bg-green-400/10 border border-green-400/30 rank-ascendant">Ascendant</div>
+      <div class="text-val-border">—</div>
+      <div class="rank-pill bg-red-500/10 border border-red-500/30 rank-immortal">Immortal</div>
+      <div class="text-val-border">—</div>
+      <div class="rank-pill bg-yellow-300/10 border border-yellow-300/30 rank-radiant">Radiant</div>
+    </div>
+    <div class="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="bg-val-card border border-val-border p-4 rounded-sm">
+        <div class="font-condensed font-bold text-white mb-1">Iron → Gold</div>
+        <div class="font-body text-sm text-val-text">Fix your crosshair placement. Stop aiming at the floor. Master basic spray control for rifles.</div>
+      </div>
+      <div class="bg-val-card border border-val-border p-4 rounded-sm">
+        <div class="font-condensed font-bold text-white mb-1">Gold → Diamond</div>
+        <div class="font-body text-sm text-val-text">Consistent first-shot accuracy. Counter-strafing. Game sense: read enemy positions, use utility.</div>
+      </div>
+      <div class="bg-val-card border border-val-border p-4 rounded-sm">
+        <div class="font-condensed font-bold text-white mb-1">Diamond → Immortal</div>
+        <div class="font-body text-sm text-val-text">Duels you should take vs. avoid. OP angles, map control, win mental battles under pressure.</div>
+      </div>
+      <div class="bg-val-card border border-val-border p-4 rounded-sm">
+        <div class="font-condensed font-bold text-white mb-1">Immortal → Radiant</div>
+        <div class="font-body text-sm text-val-text">Near-perfect mechanics + team coordination, communication, IGL-level thinking every round.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FUNDAMENTALS ===================== -->
+<section id="fundamentals" class="py-24">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="mb-16">
+      <div class="section-label mb-3">// 01 — Fundamentals</div>
+      <h2 class="font-display text-6xl text-white mb-4">THE PILLARS</h2>
+      <p class="font-body text-val-text max-w-xl text-lg">Everything in Valorant aim traces back to four non-negotiable pillars. Master these and the rank will follow.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-6 mb-12">
+
+      <!-- Pillar 1: Crosshair Placement -->
+      <div class="tip-card p-8 reveal">
+        <div class="flex items-start justify-between mb-5">
+          <div>
+            <div class="tag mb-3">Critical</div>
+            <h3 class="font-display text-3xl text-white">Crosshair Placement</h3>
+          </div>
+          <div class="font-display text-6xl text-val-red opacity-10">01</div>
+        </div>
+        <p class="font-body text-val-text text-sm leading-relaxed mb-6">
+          The single highest-leverage habit in Valorant. Keep your crosshair at <strong class="text-white">head height</strong> at all times — not the floor, not the walls, not the air. Pre-aim every corner at the exact pixel where an enemy head will appear.
+        </p>
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between mb-1.5">
+              <span class="font-condensed text-xs text-val-text tracking-wider uppercase">Impact on Win Rate</span>
+              <span class="font-condensed text-xs text-white">92%</span>
+            </div>
+            <div class="stat-bar"><div class="stat-fill" data-width="0.92"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-1.5">
+              <span class="font-condensed text-xs text-val-text tracking-wider uppercase">Difficulty to Learn</span>
+              <span class="font-condensed text-xs text-white">35%</span>
+            </div>
+            <div class="stat-bar"><div class="stat-fill" style="background: linear-gradient(90deg,#00E5FF,#0099aa);" data-width="0.35"></div></div>
+          </div>
+        </div>
+        <div class="mt-6 p-4 bg-val-darker border border-val-border rounded-sm">
+          <div class="font-condensed text-xs text-val-red tracking-wider uppercase mb-2">Pro Tip</div>
+          <p class="font-body text-xs text-val-text">On Haven A-Long, your crosshair should already be at head height near the box before you even see an enemy. Time-to-kill drops by ~60ms when you don't have to adjust.</p>
+        </div>
+      </div>
+
+      <!-- Pillar 2: Counter-Strafing -->
+      <div class="tip-card p-8 reveal">
+        <div class="flex items-start justify-between mb-5">
+          <div>
+            <div class="tag mb-3">Mechanical</div>
+            <h3 class="font-display text-3xl text-white">Counter-Strafing</h3>
+          </div>
+          <div class="font-display text-6xl text-val-red opacity-10">02</div>
+        </div>
+        <p class="font-body text-val-text text-sm leading-relaxed mb-6">
+          You <em class="text-white">cannot</em> reliably hit shots while moving. Counter-strafing means pressing the opposite key (A while moving D, or vice versa) to stop your character instantly, allowing accurate shots.
+        </p>
+        <div class="space-y-3">
+          <div>
+            <div class="flex justify-between mb-1.5">
+              <span class="font-condensed text-xs text-val-text tracking-wider uppercase">Impact on Accuracy</span>
+              <span class="font-condensed text-xs text-white">88%</span>
+            </div>
+            <div class="stat-bar"><div class="stat-fill" data-width="0.88"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between mb-1.5">
+              <span class="font-condensed text-xs text-val-text tracking-wider uppercase">Time to Master</span>
+              <span class="font-condensed text-xs text-white">70%</span>
+            </div>
+            <div class="stat-bar"><div class="stat-fill" style="background: linear-gradient(90deg,#ff9900,#cc7700);" data-width="0.70"></div></div>
+          </div>
+        </div>
+        <div class="mt-6 grid grid-cols-3 gap-3">
+          <div class="bg-val-darker border border-val-border p-3 text-center">
+            <div class="font-display text-xl text-val-red">A+D</div>
+            <div class="font-condensed text-xs text-val-text mt-1">Cancels Lateral</div>
+          </div>
+          <div class="bg-val-darker border border-val-border p-3 text-center">
+            <div class="font-display text-xl text-val-red">W+S</div>
+            <div class="font-condensed text-xs text-val-text mt-1">Cancels Forward</div>
+          </div>
+          <div class="bg-val-darker border border-val-border p-3 text-center">
+            <div class="font-display text-xl text-val-accent">~50ms</div>
+            <div class="font-condensed text-xs text-val-text mt-1">Stop Window</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pillar 3: Spray Control -->
+      <div class="tip-card p-8 reveal">
+        <div class="flex items-start justify-between mb-5">
+          <div>
+            <div class="tag mb-3">Weapon</div>
+            <h3 class="font-display text-3xl text-white">Spray Control</h3>
+          </div>
+          <div class="font-display text-6xl text-val-red opacity-10">03</div>
+        </div>
+        <p class="font-body text-val-text text-sm leading-relaxed mb-6">
+          Every rifle in Valorant has a fixed spray pattern. The Vandal and Phantom both kick up and drift. Learn to pull down and compensate horizontally — first 5 bullets are the window for headshots.
+        </p>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-val-darker border border-val-border p-4">
+            <div class="font-condensed font-bold text-white mb-2">Vandal</div>
+            <div class="space-y-1 text-xs text-val-text font-body">
+              <div>• High recoil, consistent pattern</div>
+              <div>• One-tap potential at any range</div>
+              <div>• Reset every 4-5 bullets</div>
+              <div>• Pull-down: ~8° over 15 shots</div>
+            </div>
+          </div>
+          <div class="bg-val-darker border border-val-border p-4">
+            <div class="font-condensed font-bold text-white mb-2">Phantom</div>
+            <div class="space-y-1 text-xs text-val-text font-body">
+              <div>• Lower recoil, faster fire rate</div>
+              <div>• Forgiving at close-mid range</div>
+              <div>• Suppressed — no tracers</div>
+              <div>• No one-tap beyond 15m</div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 p-3 bg-val-darker border border-val-border rounded-sm">
+          <span class="font-condensed text-xs text-val-text">💡 Start <strong class="text-white">tapping and bursting (2-3 shots)</strong> at medium-long range. Full-spraying past 10m on Vandal loses you the duel.</span>
+        </div>
+      </div>
+
+      <!-- Pillar 4: Peeking -->
+      <div class="tip-card p-8 reveal">
+        <div class="flex items-start justify-between mb-5">
+          <div>
+            <div class="tag mb-3">Movement</div>
+            <h3 class="font-display text-3xl text-white">Peek Mechanics</h3>
+          </div>
+          <div class="font-display text-6xl text-val-red opacity-10">04</div>
+        </div>
+        <p class="font-body text-val-text text-sm leading-relaxed mb-6">
+          How you peek a corner determines who wins the duel before you even see each other. Wide-peeking, shoulder-peeking, and jiggle-peeking all have specific use cases.
+        </p>
+        <div class="space-y-3">
+          <div class="bg-val-darker border-l-2 border-val-red p-3">
+            <div class="font-condensed font-bold text-white text-sm">Wide Peek</div>
+            <div class="font-body text-xs text-val-text mt-1">Gain angle advantage. Move far from the corner to see them before they can track to you. Best vs. stationary defenders.</div>
+          </div>
+          <div class="bg-val-darker border-l-2 border-yellow-500 p-3">
+            <div class="font-condensed font-bold text-white text-sm">Shoulder Peek</div>
+            <div class="font-body text-xs text-val-text mt-1">Flash your shoulder to bait the shot, then trade. Used to gather info and waste enemy bullets without committing.</div>
+          </div>
+          <div class="bg-val-darker border-l-2 border-val-accent p-3">
+            <div class="font-condensed font-bold text-white text-sm">Jiggle Peek</div>
+            <div class="font-body text-xs text-val-text mt-1">Spam A+D micro-movements to be unpredictable. Confuses operators and players who pre-aim. High-risk in open lanes.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SETTINGS ===================== -->
+<section id="settings" class="py-24 bg-val-dark border-y border-val-border">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="mb-16">
+      <div class="section-label mb-3">// 02 — Settings</div>
+      <h2 class="font-display text-6xl text-white mb-4">OPTIMIZE YOUR SETUP</h2>
+      <p class="font-body text-val-text max-w-xl text-lg">Wrong settings are a performance handicap. Here's exactly what to change and why — backed by pro player configs.</p>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-6">
+
+      <!-- Mouse Settings -->
+      <div class="tip-card p-7 reveal">
+        <div class="tag mb-4">Mouse</div>
+        <h3 class="font-display text-2xl text-white mb-5">Mouse Settings</h3>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">DPI</span>
+            <span class="font-condensed font-bold text-white">400–1600</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Polling Rate</span>
+            <span class="font-condensed font-bold text-val-red">1000Hz+</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Raw Input</span>
+            <span class="font-condensed font-bold text-val-accent">ON</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Mouse Accel</span>
+            <span class="font-condensed font-bold text-val-red">OFF</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Windows Sens</span>
+            <span class="font-condensed font-bold text-white">6/11 (default)</span>
+          </div>
+          <div class="flex items-center justify-between py-3">
+            <span class="font-body text-sm text-val-text">Enhanced Pointer</span>
+            <span class="font-condensed font-bold text-val-red">OFF</span>
+          </div>
+        </div>
+        <div class="mt-5 p-3 bg-val-darker border border-val-border rounded-sm">
+          <p class="font-body text-xs text-val-text">Pro avg: <strong class="text-white">800 DPI × 0.35 in-game = 280 eDPI</strong>. Low eDPI = more precision at the cost of large mouse movements.</p>
+        </div>
+      </div>
+
+      <!-- In-Game Settings -->
+      <div class="tip-card p-7 reveal">
+        <div class="tag mb-4">In-Game</div>
+        <h3 class="font-display text-2xl text-white mb-5">Graphics Settings</h3>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Display Mode</span>
+            <span class="font-condensed font-bold text-val-red">Fullscreen</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Resolution</span>
+            <span class="font-condensed font-bold text-white">1920×1080</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Anti-Aliasing</span>
+            <span class="font-condensed font-bold text-val-accent">MSAA 2x</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Anisotropic Filter</span>
+            <span class="font-condensed font-bold text-white">4x</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">V-Sync</span>
+            <span class="font-condensed font-bold text-val-red">OFF</span>
+          </div>
+          <div class="flex items-center justify-between py-3">
+            <span class="font-body text-sm text-val-text">NVIDIA Reflex</span>
+            <span class="font-condensed font-bold text-val-red">ON+Boost</span>
+          </div>
+        </div>
+        <div class="mt-5 p-3 bg-val-darker border border-val-border rounded-sm">
+          <p class="font-body text-xs text-val-text">Turn shadows to <strong class="text-white">Low/Off</strong> — it reveals enemies in dark corners that shadows would hide. FPS boost is a bonus.</p>
+        </div>
+      </div>
+
+      <!-- Crosshair Settings -->
+      <div class="tip-card p-7 reveal">
+        <div class="tag mb-4">Crosshair</div>
+        <h3 class="font-display text-2xl text-white mb-5">Crosshair Config</h3>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Movement Error</span>
+            <span class="font-condensed font-bold text-val-red">OFF</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Firing Error</span>
+            <span class="font-condensed font-bold text-val-red">OFF</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Inner Lines</span>
+            <span class="font-condensed font-bold text-white">1 / 4 / 2 / 2</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Center Dot</span>
+            <span class="font-condensed font-bold text-val-accent">Optional</span>
+          </div>
+          <div class="flex items-center justify-between py-3 border-b border-val-border">
+            <span class="font-body text-sm text-val-text">Outer Lines</span>
+            <span class="font-condensed font-bold text-val-red">OFF</span>
+          </div>
+          <div class="flex items-center justify-between py-3">
+            <span class="font-body text-sm text-val-text">Opacity</span>
+            <span class="font-condensed font-bold text-white">100%</span>
+          </div>
+        </div>
+        <div class="mt-5 p-3 bg-val-darker border border-val-border rounded-sm">
+          <p class="font-body text-xs text-val-text">Disable movement/firing error — it trains bad habits. You should <strong class="text-white">know</strong> you can't shoot accurately while moving, not rely on the crosshair feedback.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pro configs -->
+    <div class="mt-10 reveal">
+      <div class="font-condensed text-sm text-val-text tracking-widest uppercase mb-4">Pro Player Configs — 2025</div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-val-border">
+              <th class="font-condensed text-xs text-val-text tracking-widest uppercase text-left py-3 pr-6">Player</th>
+              <th class="font-condensed text-xs text-val-text tracking-widest uppercase text-left py-3 pr-6">Team</th>
+              <th class="font-condensed text-xs text-val-text tracking-widest uppercase text-left py-3 pr-6">DPI</th>
+              <th class="font-condensed text-xs text-val-text tracking-widest uppercase text-left py-3 pr-6">In-Game Sens</th>
+              <th class="font-condensed text-xs text-val-text tracking-widest uppercase text-left py-3 pr-6">eDPI</th>
+              <th class="font-condensed text-xs text-val-text tracking-widest uppercase text-left py-3">Hz</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="routine-row">
+              <td class="py-3 pr-6 font-condensed font-bold text-white">TenZ</td>
+              <td class="py-3 pr-6 text-val-text">Sentinels</td>
+              <td class="py-3 pr-6 text-val-text">800</td>
+              <td class="py-3 pr-6 text-val-red font-condensed font-bold">0.408</td>
+              <td class="py-3 pr-6 text-white font-condensed">326</td>
+              <td class="py-3 text-val-text">1000</td>
+            </tr>
+            <tr class="routine-row">
+              <td class="py-3 pr-6 font-condensed font-bold text-white">Asuna</td>
+              <td class="py-3 pr-6 text-val-text">100 Thieves</td>
+              <td class="py-3 pr-6 text-val-text">1600</td>
+              <td class="py-3 pr-6 text-val-red font-condensed font-bold">0.18</td>
+              <td class="py-3 pr-6 text-white font-condensed">288</td>
+              <td class="py-3 text-val-text">1000</td>
+            </tr>
+            <tr class="routine-row">
+              <td class="py-3 pr-6 font-condensed font-bold text-white">nAts</td>
+              <td class="py-3 pr-6 text-val-text">Team Spirit</td>
+              <td class="py-3 pr-6 text-val-text">800</td>
+              <td class="py-3 pr-6 text-val-red font-condensed font-bold">0.37</td>
+              <td class="py-3 pr-6 text-white font-condensed">296</td>
+              <td class="py-3 text-val-text">1000</td>
+            </tr>
+            <tr class="routine-row">
+              <td class="py-3 pr-6 font-condensed font-bold text-white">cNed</td>
+              <td class="py-3 pr-6 text-val-text">FUT Esports</td>
+              <td class="py-3 pr-6 text-val-text">400</td>
+              <td class="py-3 pr-6 text-val-red font-condensed font-bold">0.82</td>
+              <td class="py-3 pr-6 text-white font-condensed">328</td>
+              <td class="py-3 text-val-text">1000</td>
+            </tr>
+            <tr class="routine-row">
+              <td class="py-3 pr-6 font-condensed font-bold text-white">yay</td>
+              <td class="py-3 pr-6 text-val-text">Cloud9</td>
+              <td class="py-3 pr-6 text-val-text">800</td>
+              <td class="py-3 pr-6 text-val-red font-condensed font-bold">0.33</td>
+              <td class="py-3 pr-6 text-white font-condensed">264</td>
+              <td class="py-3 text-val-text">1000</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SENSITIVITY CALCULATOR ===================== -->
+<section id="calculator" class="py-24">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="mb-16">
+      <div class="section-label mb-3">// 03 — Calculator</div>
+      <h2 class="font-display text-6xl text-white mb-4">FIND YOUR SENS</h2>
+      <p class="font-body text-val-text max-w-xl text-lg">Convert sensitivities between games, or find your ideal eDPI using the pro average formula.</p>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-8">
+
+      <!-- eDPI Calculator -->
+      <div class="calc-container p-8 reveal">
+        <div class="font-condensed font-semibold text-white tracking-widest uppercase mb-6">eDPI Calculator</div>
+        <div class="space-y-5">
+          <div>
+            <label class="font-condensed text-xs text-val-text tracking-wider uppercase mb-2 block">Mouse DPI</label>
+            <input type="number" id="dpiInput" value="800" min="100" max="32000" step="100" oninput="calcEdpi()">
+          </div>
+          <div>
+            <label class="font-condensed text-xs text-val-text tracking-wider uppercase mb-2 block">In-Game Sensitivity</label>
+            <input type="number" id="sensInput" value="0.35" min="0.01" max="10" step="0.01" oninput="calcEdpi()">
+          </div>
+          <div class="border-t border-val-border pt-5">
+            <div class="font-condensed text-xs text-val-text tracking-wider uppercase mb-2">Your eDPI</div>
+            <div class="font-display text-5xl text-val-red glow-red" id="edpiResult">280</div>
+            <div class="mt-3 font-body text-sm" id="edpiRating"></div>
+          </div>
+          <div>
+            <label class="font-condensed text-xs text-val-text tracking-wider uppercase mb-2 block">
+              360° Distance: <span class="text-white" id="cmPer360">—</span>
+            </label>
+            <div class="font-body text-xs text-val-text">How far your mouse needs to travel for a full 360° turn. Pros average 35–50cm.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Converter -->
+      <div class="calc-container p-8 reveal">
+        <div class="font-condensed font-semibold text-white tracking-widest uppercase mb-6">Game → Valorant Converter</div>
+        <div class="space-y-5">
+          <div>
+            <label class="font-condensed text-xs text-val-text tracking-wider uppercase mb-2 block">Source Game</label>
+            <select id="sourceGame" onchange="convertSens()" class="w-full bg-val-darker border border-val-border text-white px-3 py-2 font-condensed text-sm" style="border-radius:3px; outline:none;">
+              <option value="1.0">Valorant</option>
+              <option value="3.18">CS2 / CS:GO</option>
+              <option value="0.5">Overwatch 2</option>
+              <option value="2.5">Apex Legends</option>
+              <option value="1.5">Rainbow Six Siege</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-condensed text-xs text-val-text tracking-wider uppercase mb-2 block">Source Sensitivity</label>
+            <input type="number" id="sourceSens" value="2.0" min="0.01" max="100" step="0.01" oninput="convertSens()">
+          </div>
+          <div class="border-t border-val-border pt-5">
+            <div class="font-condensed text-xs text-val-text tracking-wider uppercase mb-2">Valorant Equivalent</div>
+            <div class="font-display text-5xl text-val-accent glow-accent" id="convertedSens">0.63</div>
+            <div class="mt-2 font-body text-xs text-val-text">This converts your muscle memory so you don't have to relearn aim from scratch.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== TRAINING ROUTINE ===================== -->
+<section id="training" class="py-24 bg-val-dark border-y border-val-border">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="mb-16">
+      <div class="section-label mb-3">// 04 — Training</div>
+      <h2 class="font-display text-6xl text-white mb-4">THE DAILY ROUTINE</h2>
+      <p class="font-body text-val-text max-w-xl text-lg">Serious ranked players don't just "play ranked and hope." They follow a structured warmup that builds real skill, not just game time.</p>
+    </div>
+
+    <!-- Routine table -->
+    <div class="overflow-x-auto mb-12 reveal">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b-2 border-val-red">
+            <th class="font-condensed text-xs text-val-text tracking-widest uppercase text-left py-3 pr-8 w-12">#</th>
+            <th class="font-condensed text-xs text-val-text tracking-widest uppercase text-left py-3 pr-8">Activity</th>
+            <th class="font-condensed text-xs text-val-text tracking-widest uppercase text-left py-3 pr-8">Duration</th>
+            <th class="font-condensed text-xs text-val-text tracking-widest uppercase text-left py-3 pr-8">Tool</th>
+            <th class="font-condensed text-xs text-val-text tracking-widest uppercase text-left py-3">Focus</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="routine-row">
+            <td class="py-4 pr-8 font-display text-val-red text-lg">01</td>
+            <td class="py-4 pr-8 font-condensed font-bold text-white">Gridshot</td>
+            <td class="py-4 pr-8 font-condensed text-val-accent">10 min</td>
+            <td class="py-4 pr-8"><span class="tag">Aim Lab</span></td>
+            <td class="py-4 font-body text-sm text-val-text">Arm warm-up, basic flicking, reaction speed priming</td>
+          </tr>
+          <tr class="routine-row">
+            <td class="py-4 pr-8 font-display text-val-red text-lg">02</td>
+            <td class="py-4 pr-8 font-condensed font-bold text-white">VCT Scenario Packs</td>
+            <td class="py-4 pr-8 font-condensed text-val-accent">10 min</td>
+            <td class="py-4 pr-8"><span class="tag">Aim Lab</span></td>
+            <td class="py-4 font-body text-sm text-val-text">Valorant-specific scenarios: strafebot, spidershot, tracking</td>
+          </tr>
+          <tr class="routine-row">
+            <td class="py-4 pr-8 font-display text-val-red text-lg">03</td>
+            <td class="py-4 pr-8 font-condensed font-bold text-white">The Range — Bots</td>
+            <td class="py-4 pr-8 font-condensed text-val-accent">10 min</td>
+            <td class="py-4 pr-8"><span class="tag">Valorant</span></td>
+            <td class="py-4 font-body text-sm text-val-text">Hard mode bots, vary between Vandal and Phantom, one-tap focus</td>
+          </tr>
+          <tr class="routine-row">
+            <td class="py-4 pr-8 font-display text-val-red text-lg">04</td>
+            <td class="py-4 pr-8 font-condensed font-bold text-white">Spray Transfer Drill</td>
+            <td class="py-4 pr-8 font-condensed text-val-accent">5 min</td>
+            <td class="py-4 pr-8"><span class="tag">Valorant</span></td>
+            <td class="py-4 font-body text-sm text-val-text">Spray a wall, reset, transfer to another target — practices mid-fight switches</td>
+          </tr>
+          <tr class="routine-row">
+            <td class="py-4 pr-8 font-display text-val-red text-lg">05</td>
+            <td class="py-4 pr-8 font-condensed font-bold text-white">Deathmatch (no guns)</td>
+            <td class="py-4 pr-8 font-condensed text-val-accent">10 min</td>
+            <td class="py-4 pr-8"><span class="tag">Valorant</span></td>
+            <td class="py-4 font-body text-sm text-val-text">Movement only — practice crosshair placement and map navigation</td>
+          </tr>
+          <tr class="routine-row">
+            <td class="py-4 pr-8 font-display text-val-red text-lg">06</td>
+            <td class="py-4 pr-8 font-condensed font-bold text-white">Standard Deathmatch</td>
+            <td class="py-4 pr-8 font-condensed text-val-accent">15 min</td>
+            <td class="py-4 pr-8"><span class="tag">Valorant</span></td>
+            <td class="py-4 font-body text-sm text-val-text">Active aim, real opponents, apply everything. Start with only Vandal/Phantom.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Weekly plan -->
+    <div class="reveal">
+      <div class="font-condensed text-sm text-val-text tracking-widest uppercase mb-5">Weekly Commitment Plan</div>
+      <div class="grid grid-cols-7 gap-2">
+        <div class="bg-val-card border border-val-red/40 p-4 rounded-sm text-center">
+          <div class="font-condensed font-bold text-white text-xs mb-2">MON</div>
+          <div class="font-body text-xs text-val-text">Full routine + 2 ranked</div>
+        </div>
+        <div class="bg-val-card border border-val-border p-4 rounded-sm text-center">
+          <div class="font-condensed font-bold text-white text-xs mb-2">TUE</div>
+          <div class="font-body text-xs text-val-text">Aim Lab only + VOD review</div>
+        </div>
+        <div class="bg-val-card border border-val-red/40 p-4 rounded-sm text-center">
+          <div class="font-condensed font-bold text-white text-xs mb-2">WED</div>
+          <div class="font-body text-xs text-val-text">Full routine + 3 ranked</div>
+        </div>
+        <div class="bg-val-card border border-val-border p-4 rounded-sm text-center">
+          <div class="font-condensed font-bold text-white text-xs mb-2">THU</div>
+          <div class="font-body text-xs text-val-text">Rest or light DM</div>
+        </div>
+        <div class="bg-val-card border border-val-red/40 p-4 rounded-sm text-center">
+          <div class="font-condensed font-bold text-white text-xs mb-2">FRI</div>
+          <div class="font-body text-xs text-val-text">Full routine + 3 ranked</div>
+        </div>
+        <div class="bg-val-card border border-val-red/40 p-4 rounded-sm text-center">
+          <div class="font-condensed font-bold text-white text-xs mb-2">SAT</div>
+          <div class="font-body text-xs text-val-text">Peak day — 4–5 ranked</div>
+        </div>
+        <div class="bg-val-card border border-val-border p-4 rounded-sm text-center">
+          <div class="font-condensed font-bold text-white text-xs mb-2">SUN</div>
+          <div class="font-body text-xs text-val-text">Rest. Analyze week.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== AGENT GUIDE ===================== -->
+<section class="py-24">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="mb-16">
+      <div class="section-label mb-3">// 05 — Agents</div>
+      <h2 class="font-display text-6xl text-white mb-4">PICK THE RIGHT AGENT</h2>
+      <p class="font-body text-val-text max-w-xl text-lg">Your agent choice impacts how you should aim and engage. Don't fight the meta — understand why it exists.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-5 reveal">
+
+      <!-- Duelist -->
+      <div class="tip-card p-6">
+        <span class="duelist agent-badge mb-4 inline-block">Duelist</span>
+        <h3 class="font-display text-2xl text-white mb-3">Entry Fragger</h3>
+        <p class="font-body text-xs text-val-text mb-4">You initiate fights and create space. Aim must be sharp — you're going in first.</p>
+        <div class="space-y-2 text-xs font-body text-val-text">
+          <div class="flex justify-between"><span>Jett</span><span class="text-white">Operator / one-tap</span></div>
+          <div class="flex justify-between"><span>Reyna</span><span class="text-white">Aggressive gunfights</span></div>
+          <div class="flex justify-between"><span>Neon</span><span class="text-white">Movement + spray</span></div>
+          <div class="flex justify-between"><span>Iso</span><span class="text-white">1v1 specialist</span></div>
+        </div>
+        <div class="mt-4 p-3 bg-val-darker border border-val-border rounded-sm">
+          <p class="font-body text-xs text-val-text"><strong class="text-white">Aim tip:</strong> With Reyna, position aggressively and use Dismiss after trades. Win the first duel — the rest follows.</p>
+        </div>
+      </div>
+
+      <!-- Initiator -->
+      <div class="tip-card p-6">
+        <span class="initiator agent-badge mb-4 inline-block">Initiator</span>
+        <h3 class="font-display text-2xl text-white mb-3">Support Entry</h3>
+        <p class="font-body text-xs text-val-text mb-4">Gather info and set up your team. Aim matters, but utility execution matters more.</p>
+        <div class="space-y-2 text-xs font-body text-val-text">
+          <div class="flex justify-between"><span>Sova</span><span class="text-white">Intel + darts</span></div>
+          <div class="flex justify-between"><span>KAY/O</span><span class="text-white">Flash entries</span></div>
+          <div class="flex justify-between"><span>Fade</span><span class="text-white">Track + reveal</span></div>
+          <div class="flex justify-between"><span>Breach</span><span class="text-white">Stun + push</span></div>
+        </div>
+        <div class="mt-4 p-3 bg-val-darker border border-val-border rounded-sm">
+          <p class="font-body text-xs text-val-text"><strong class="text-white">Aim tip:</strong> Flash first, then peek. Your opponents are blinded — don't waste the advantage by hesitating.</p>
+        </div>
+      </div>
+
+      <!-- Controller -->
+      <div class="tip-card p-6">
+        <span class="controller agent-badge mb-4 inline-block">Controller</span>
+        <h3 class="font-display text-2xl text-white mb-3">Smoke & Control</h3>
+        <p class="font-body text-xs text-val-text mb-4">Smoke vision, cut rotations, and play for post-plant. Solid aim with smart positioning.</p>
+        <div class="space-y-2 text-xs font-body text-val-text">
+          <div class="flex justify-between"><span>Omen</span><span class="text-white">Teleport pressure</span></div>
+          <div class="flex justify-between"><span>Brimstone</span><span class="text-white">Easy lineups</span></div>
+          <div class="flex justify-between"><span>Clove</span><span class="text-white">Self-res + smokes</span></div>
+          <div class="flex justify-between"><span>Astra</span><span class="text-white">Global control</span></div>
+        </div>
+        <div class="mt-4 p-3 bg-val-darker border border-val-border rounded-sm">
+          <p class="font-body text-xs text-val-text"><strong class="text-white">Aim tip:</strong> Omen's teleport creates angle advantages. Pre-aim before landing — don't land and then look for the crosshair.</p>
+        </div>
+      </div>
+
+      <!-- Sentinel -->
+      <div class="tip-card p-6">
+        <span class="sentinel agent-badge mb-4 inline-block">Sentinel</span>
+        <h3 class="font-display text-2xl text-white mb-3">Anchor & Lock</h3>
+        <p class="font-body text-xs text-val-text mb-4">Hold sites, gather info, anchor rounds. Patient aim — let enemies come to you.</p>
+        <div class="space-y-2 text-xs font-body text-val-text">
+          <div class="flex justify-between"><span>Cypher</span><span class="text-white">Information web</span></div>
+          <div class="flex justify-between"><span>Killjoy</span><span class="text-white">Site lockdown</span></div>
+          <div class="flex justify-between"><span>Sage</span><span class="text-white">Healer + wall</span></div>
+          <div class="flex justify-between"><span>Deadlock</span><span class="text-white">Trap pressure</span></div>
+        </div>
+        <div class="mt-4 p-3 bg-val-darker border border-val-border rounded-sm">
+          <p class="font-body text-xs text-val-text"><strong class="text-white">Aim tip:</strong> KJ players: set util, then hold a tight angle. You know where they're coming from — pre-aim that pixel.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== MINDSET ===================== -->
+<section id="mindset" class="py-24 bg-val-dark border-y border-val-border">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="mb-16">
+      <div class="section-label mb-3">// 06 — Mindset</div>
+      <h2 class="font-display text-6xl text-white mb-4">THE MENTAL GAME</h2>
+      <p class="font-body text-val-text max-w-xl text-lg">Mechanics ceiling. Mentality floor. You will never consistently rank up if your mental isn't right — even with perfect aim.</p>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-6 reveal">
+      <div class="tip-card p-7">
+        <div class="font-display text-4xl text-val-red mb-2">01</div>
+        <h3 class="font-condensed font-bold text-white text-xl mb-3">VOD Review Every Loss</h3>
+        <p class="font-body text-sm text-val-text leading-relaxed">Watch your worst round of every loss. Identify: where was your crosshair when you died? Were you moving? Did you have info? One insight per game compounds to 300 insights per year.</p>
+      </div>
+      <div class="tip-card p-7">
+        <div class="font-display text-4xl text-val-red mb-2">02</div>
+        <h3 class="font-condensed font-bold text-white text-xl mb-3">Kill the Tilt Loop</h3>
+        <p class="font-body text-sm text-val-text leading-relaxed">Tilt → bad decisions → more deaths → more tilt. Break it. 5-minute rule: if you die stupidly twice in a row, stand up and walk away from your desk. Return only when you're calm.</p>
+      </div>
+      <div class="tip-card p-7">
+        <div class="font-display text-4xl text-val-red mb-2">03</div>
+        <h3 class="font-condensed font-bold text-white text-xl mb-3">Focus on Process, Not Rank</h3>
+        <p class="font-body text-sm text-val-text leading-relaxed">Set session goals like "proper crosshair placement" — not "win 3 games." Rank is a lagging indicator. If you focus on process, rank follows. Focusing on rank directly causes panic and bad decisions.</p>
+      </div>
+      <div class="tip-card p-7">
+        <div class="font-display text-4xl text-val-red mb-2">04</div>
+        <h3 class="font-condensed font-bold text-white text-xl mb-3">Never Blame Teammates</h3>
+        <p class="font-body text-sm text-val-text leading-relaxed">You control one player. Blaming others is cognitive offloading — your brain uses it to avoid self-examination. Ask: "What could I have done differently?" Every round has an answer.</p>
+      </div>
+      <div class="tip-card p-7">
+        <div class="font-display text-4xl text-val-red mb-2">05</div>
+        <h3 class="font-condensed font-bold text-white text-xl mb-3">Session Limits</h3>
+        <p class="font-body text-sm text-val-text leading-relaxed">Stop at 2 consecutive losses. Forced break. Your brain is in a negative state and it affects aim, decision-making, and communication. More games don't fix a losing mental loop — they entrench it.</p>
+      </div>
+      <div class="tip-card p-7">
+        <div class="font-display text-4xl text-val-red mb-2">06</div>
+        <h3 class="font-condensed font-bold text-white text-xl mb-3">Sleep & Hydration</h3>
+        <p class="font-body text-sm text-val-text leading-relaxed">This isn't a joke. Reaction time drops 10–15% when dehydrated and 20%+ with poor sleep. Peak Valorant requires your nervous system functioning at its best. Treat it like any sport.</p>
+      </div>
+    </div>
+
+    <!-- Key stats -->
+    <div class="mt-14 grid grid-cols-2 md:grid-cols-4 gap-6 reveal">
+      <div class="text-center">
+        <div class="font-display text-5xl text-val-red glow-red">-23%</div>
+        <div class="font-condensed text-xs text-val-text tracking-widest uppercase mt-2">Reaction time loss when tilted</div>
+      </div>
+      <div class="text-center">
+        <div class="font-display text-5xl text-val-accent glow-accent">40%</div>
+        <div class="font-condensed text-xs text-val-text tracking-widest uppercase mt-2">Of ranked games are mental losses</div>
+      </div>
+      <div class="text-center">
+        <div class="font-display text-5xl text-white">2x</div>
+        <div class="font-condensed text-xs text-val-text tracking-widest uppercase mt-2">Improvement speed with VOD review</div>
+      </div>
+      <div class="text-center">
+        <div class="font-display text-5xl text-val-red glow-red">8hrs</div>
+        <div class="font-condensed text-xs text-val-text tracking-widest uppercase mt-2">Minimum sleep for peak performance</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== MAP KNOWLEDGE ===================== -->
+<section class="py-24">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="mb-16">
+      <div class="section-label mb-3">// 07 — Maps</div>
+      <h2 class="font-display text-6xl text-white mb-4">MAP KNOWLEDGE WINS DUELS</h2>
+      <p class="font-body text-val-text max-w-xl text-lg">You don't need better aim to win — you need to take better duels. Map knowledge tells you which duels to take.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 reveal">
+      <div class="tip-card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-display text-2xl text-white">Ascent</div>
+          <div class="map-badge">Symmetric</div>
+        </div>
+        <p class="font-body text-xs text-val-text mb-4">Wide open mid with crucial cat control. Mid fights are long-range — Vandal preferred. A-main fights are aggressive peek corridors.</p>
+        <div class="space-y-1 text-xs font-body text-val-text">
+          <div>🎯 Pre-aim: A-lobby boxes at head height</div>
+          <div>🎯 Hold mid doors with crossed angles</div>
+          <div>🎯 B-site: Clear market before pushing</div>
+        </div>
+      </div>
+
+      <div class="tip-card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-display text-2xl text-white">Haven</div>
+          <div class="map-badge">3 Sites</div>
+        </div>
+        <p class="font-body text-xs text-val-text mb-4">Three bomb sites = attackers can spread defenders thin. C-long is a sniper's paradise. A-long favors aggressive peekers.</p>
+        <div class="space-y-1 text-xs font-body text-val-text">
+          <div>🎯 C-long: Pre-aim corner, then room</div>
+          <div>🎯 A-long: Wide-peek to gain angle advantage</div>
+          <div>🎯 Mid: Shoulder peek garage door first</div>
+        </div>
+      </div>
+
+      <div class="tip-card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-display text-2xl text-white">Bind</div>
+          <div class="map-badge">Teleporters</div>
+        </div>
+        <p class="font-body text-xs text-val-text mb-4">No mid. Teleporters enable unexpected angles. Short A fights and tight B site hallways — spray control over flicking.</p>
+        <div class="space-y-1 text-xs font-body text-val-text">
+          <div>🎯 A short: Hug wall, wide-peek hookah</div>
+          <div>🎯 B site: Pre-aim lamps before entering</div>
+          <div>🎯 Teleporter: Always check the sound first</div>
+        </div>
+      </div>
+
+      <div class="tip-card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-display text-2xl text-white">Split</div>
+          <div class="map-badge">Vertical</div>
+        </div>
+        <p class="font-body text-xs text-val-text mb-4">Tight corridors and ramps. Vertical play is key — learn to check heights. Phantom shines on Split due to close-range fights.</p>
+        <div class="space-y-1 text-xs font-body text-val-text">
+          <div>🎯 Mid: Check vents before walking under</div>
+          <div>🎯 A ramps: Peek wide to cut angles</div>
+          <div>🎯 B main: Shoulder peek showers first</div>
+        </div>
+      </div>
+
+      <div class="tip-card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-display text-2xl text-white">Icebox</div>
+          <div class="map-badge">Complex</div>
+        </div>
+        <p class="font-body text-xs text-val-text mb-4">Elevated positions and container stacks. Always check high ground. Sniper-friendly B-tube. Use grenades to clear boxes before pushing.</p>
+        <div class="space-y-1 text-xs font-body text-val-text">
+          <div>🎯 Mid: Check yellow box and nest</div>
+          <div>🎯 A: Pre-aim the boxes at site entry</div>
+          <div>🎯 B tube: Operator-heavy — flash or rush</div>
+        </div>
+      </div>
+
+      <div class="tip-card p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-display text-2xl text-white">Sunset</div>
+          <div class="map-badge">Mid-Focus</div>
+        </div>
+        <p class="font-body text-xs text-val-text mb-4">Mid control is decisive. Market fight determines A-site access. Long sightlines at B-main reward precise Vandal taps.</p>
+        <div class="space-y-1 text-xs font-body text-val-text">
+          <div>🎯 Market: Never push without a flash</div>
+          <div>🎯 A-main: Wide peek the corner first</div>
+          <div>🎯 B: One-taps from mid are common</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== COMMON MISTAKES ===================== -->
+<section class="py-24 bg-val-dark border-y border-val-border">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="mb-16">
+      <div class="section-label mb-3">// 08 — Mistakes</div>
+      <h2 class="font-display text-6xl text-white mb-4">STOP DOING THIS</h2>
+    </div>
+    <div class="grid md:grid-cols-2 gap-4 reveal">
+      <div class="flex gap-5 p-5 bg-val-card border border-val-border rounded-sm items-start">
+        <div class="font-display text-3xl text-val-red shrink-0 mt-1">✕</div>
+        <div>
+          <div class="font-condensed font-bold text-white mb-1">Shooting While Moving</div>
+          <div class="font-body text-sm text-val-text">In Valorant, movement and accuracy are mutually exclusive. Every shot you fire mid-strafe is a prayer, not a shot. Stop. Shoot. Move.</div>
+        </div>
+      </div>
+      <div class="flex gap-5 p-5 bg-val-card border border-val-border rounded-sm items-start">
+        <div class="font-display text-3xl text-val-red shrink-0 mt-1">✕</div>
+        <div>
+          <div class="font-condensed font-bold text-white mb-1">Peeking Without Info</div>
+          <div class="font-body text-sm text-val-text">Blind aggressive peeks are gambling, not playing. Use abilities, callouts, or sound cues before peeking an unknown corner. Patience is mechanical skill.</div>
+        </div>
+      </div>
+      <div class="flex gap-5 p-5 bg-val-card border border-val-border rounded-sm items-start">
+        <div class="font-display text-3xl text-val-red shrink-0 mt-1">✕</div>
+        <div>
+          <div class="font-condensed font-bold text-white mb-1">Spray and Pray at Long Range</div>
+          <div class="font-body text-sm text-val-text">Full spray beyond close range loses you every duel. Tap or 3-shot burst at medium range. Counter-strafe between each burst. Let the pattern reset.</div>
+        </div>
+      </div>
+      <div class="flex gap-5 p-5 bg-val-card border border-val-border rounded-sm items-start">
+        <div class="font-display text-3xl text-val-red shrink-0 mt-1">✕</div>
+        <div>
+          <div class="font-condensed font-bold text-white mb-1">Force-Buying Every Round</div>
+          <div class="font-body text-sm text-val-text">A Spectre vs. full rifles is a massive disadvantage. Eco properly, spike team economy, and you'll win more rounds overall — even the ones you eco.</div>
+        </div>
+      </div>
+      <div class="flex gap-5 p-5 bg-val-card border border-val-border rounded-sm items-start">
+        <div class="font-display text-3xl text-val-red shrink-0 mt-1">✕</div>
+        <div>
+          <div class="font-condensed font-bold text-white mb-1">Chasing Kills Over Objectives</div>
+          <div class="font-body text-sm text-val-text">Valorant rounds are won by planting and defusing, not by K/D. A 40-kill loss is still a loss. Every round-winning decision should center around the spike.</div>
+        </div>
+      </div>
+      <div class="flex gap-5 p-5 bg-val-card border border-val-border rounded-sm items-start">
+        <div class="font-display text-3xl text-val-red shrink-0 mt-1">✕</div>
+        <div>
+          <div class="font-condensed font-bold text-white mb-1">Playing on High Ping</div>
+          <div class="font-body text-sm text-val-text">Above 60ms, peeker's advantage swings hard against you. Fix your connection: wired over WiFi, close background apps, select the right server. 20ms vs. 80ms is a mechanical difference.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="py-16 border-t border-val-border">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="grid md:grid-cols-3 gap-10 mb-12">
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+            <circle cx="14" cy="14" r="13" stroke="#FF4655" stroke-width="1.5"/>
+            <line x1="14" y1="2" x2="14" y2="26" stroke="#FF4655" stroke-width="1.5"/>
+            <line x1="2" y1="14" x2="26" y2="14" stroke="#FF4655" stroke-width="1.5"/>
+            <circle cx="14" cy="14" r="2.5" fill="#FF4655"/>
+          </svg>
+          <span class="font-display text-lg tracking-widest text-white">GETBETTERAIM</span>
+        </div>
+        <p class="font-body text-sm text-val-text leading-relaxed">The definitive Valorant aim improvement resource. Science-backed, pro-verified, rank-tested.</p>
+      </div>
+      <div>
+        <div class="font-condensed text-xs text-val-text tracking-widest uppercase mb-4">Quick Links</div>
+        <div class="space-y-2">
+          <a href="#fundamentals" class="block font-body text-sm text-val-text hover:text-white transition-colors">Fundamentals</a>
+          <a href="#settings" class="block font-body text-sm text-val-text hover:text-white transition-colors">Settings Guide</a>
+          <a href="#training" class="block font-body text-sm text-val-text hover:text-white transition-colors">Training Routine</a>
+          <a href="#mindset" class="block font-body text-sm text-val-text hover:text-white transition-colors">Mental Game</a>
+          <a href="#calculator" class="block font-body text-sm text-val-text hover:text-white transition-colors">Sensitivity Calculator</a>
+        </div>
+      </div>
+      <div>
+        <div class="font-condensed text-xs text-val-text tracking-widest uppercase mb-4">Resources</div>
+        <div class="space-y-2">
+          <span class="block font-body text-sm text-val-text">Aim Lab (Free)</span>
+          <span class="block font-body text-sm text-val-text">KovaaK's 2.0</span>
+          <span class="block font-body text-sm text-val-text">Valorant Tracker</span>
+          <span class="block font-body text-sm text-val-text">ProSettings.net</span>
+        </div>
+      </div>
+    </div>
+    <div class="border-t border-val-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="font-condensed text-xs text-val-text tracking-widest uppercase">© 2025 GetBetterAim.com — Not affiliated with Riot Games</div>
+      <div class="font-condensed text-xs text-val-red tracking-widest uppercase">VALORANT is a trademark of Riot Games</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ─── Custom Crosshair ───
+  const ch = document.getElementById('crosshair');
+  document.addEventListener('mousemove', e => {
+    ch.style.left = e.clientX + 'px';
+    ch.style.top = e.clientY + 'px';
+  });
+
+  // ─── Crosshair Customizer ───
+  let crosshairColor = '#FF4655';
+
+  function setCrosshairColor(c) {
+    crosshairColor = c;
+    updateCrosshair();
+    // Update the custom cursor too
+    document.querySelectorAll('#crosshair::before, #crosshair::after, .ch-dot').forEach(el => el.style.background = c);
+  }
+
+  function updateCrosshair() {
+    const gap = parseInt(document.getElementById('gapSlider').value);
+    const len = parseInt(document.getElementById('lenSlider').value);
+    const thick = parseInt(document.getElementById('thickSlider').value);
+    document.getElementById('gapVal').textContent = gap;
+    document.getElementById('lenVal').textContent = len;
+    document.getElementById('thickVal').textContent = thick;
+
+    const cx = 80, cy = 80;
+    const svg = document.getElementById('crosshairPreview');
+    const lines = svg.querySelectorAll('line');
+    const dot = svg.querySelector('circle');
+
+    // top
+    lines[0].setAttribute('x1', cx); lines[0].setAttribute('y1', cy - gap - len);
+    lines[0].setAttribute('x2', cx); lines[0].setAttribute('y2', cy - gap);
+    lines[0].setAttribute('stroke-width', thick);
+    lines[0].setAttribute('stroke', crosshairColor);
+    // bottom
+    lines[1].setAttribute('x1', cx); lines[1].setAttribute('y1', cy + gap);
+    lines[1].setAttribute('x2', cx); lines[1].setAttribute('y2', cy + gap + len);
+    lines[1].setAttribute('stroke-width', thick);
+    lines[1].setAttribute('stroke', crosshairColor);
+    // left
+    lines[2].setAttribute('x1', cx - gap - len); lines[2].setAttribute('y1', cy);
+    lines[2].setAttribute('x2', cx - gap); lines[2].setAttribute('y2', cy);
+    lines[2].setAttribute('stroke-width', thick);
+    lines[2].setAttribute('stroke', crosshairColor);
+    // right
+    lines[3].setAttribute('x1', cx + gap); lines[3].setAttribute('y1', cy);
+    lines[3].setAttribute('x2', cx + gap + len); lines[3].setAttribute('y2', cy);
+    lines[3].setAttribute('stroke-width', thick);
+    lines[3].setAttribute('stroke', crosshairColor);
+
+    dot.setAttribute('fill', crosshairColor);
+  }
+
+  // ─── eDPI Calculator ───
+  function calcEdpi() {
+    const dpi = parseFloat(document.getElementById('dpiInput').value) || 800;
+    const sens = parseFloat(document.getElementById('sensInput').value) || 0.35;
+    const edpi = Math.round(dpi * sens);
+    document.getElementById('edpiResult').textContent = edpi;
+
+    let rating = '';
+    if (edpi < 200) rating = '<span style="color:#FFD700">⚠️ Very Low — huge mouse movements required</span>';
+    else if (edpi < 280) rating = '<span style="color:#00E5FF">✓ Low — precision-focused, pro range</span>';
+    else if (edpi <= 400) rating = '<span style="color:#00FF7F">✓ Optimal — in the pro sweet spot</span>';
+    else if (edpi <= 600) rating = '<span style="color:#FFB800">⚠️ Medium-High — may hurt precision</span>';
+    else rating = '<span style="color:#FF4655">✗ Too High — significantly reduces accuracy</span>';
+    document.getElementById('edpiRating').innerHTML = rating;
+
+    // 360 distance (cm) — formula: 360 / (0.022 * edpi * 0.001) ... simplified
+    const cmFor360 = (36000 / (edpi * 0.022)).toFixed(1);
+    document.getElementById('cmPer360').textContent = cmFor360 + ' cm';
+  }
+  calcEdpi();
+
+  // ─── Converter ───
+  function convertSens() {
+    const ratio = parseFloat(document.getElementById('sourceGame').value);
+    const src = parseFloat(document.getElementById('sourceSens').value) || 1;
+    const result = (src / ratio).toFixed(4);
+    document.getElementById('convertedSens').textContent = result;
+  }
+  convertSens();
+
+  // ─── Stat Bars ───
+  function animateBars() {
+    document.querySelectorAll('.stat-fill').forEach(bar => {
+      const rect = bar.getBoundingClientRect();
+      if (rect.top < window.innerHeight) {
+        const w = parseFloat(bar.dataset.width) || 0;
+        bar.style.transform = `scaleX(${w})`;
+      }
+    });
+  }
+  window.addEventListener('scroll', animateBars);
+  setTimeout(animateBars, 500);
+
+  // ─── Scroll Reveal ───
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.transition = 'opacity 0.6s ease, transform 0.6s cubic-bezier(0.16,1,0.3,1)';
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+  // ─── Glitch on load ───
+  document.querySelector('.glitch').style.opacity = '1';
+</script>
+</body>
+</html>
